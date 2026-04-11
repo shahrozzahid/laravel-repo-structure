@@ -12,9 +12,24 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Http\Contracts\IUserServiceContract;
+use App\Http\Requests\Admin\StoreUserRequest;
 
 class RegisteredUserController extends Controller
 {
+    private $_userService;
+
+
+    /**
+     * RegisteredUserController constructor.
+     * @param IUserServiceContract $userService
+     */
+    public function __construct(IUserServiceContract $userService)
+    {
+        $this->_userService = $userService;
+    }
+
+
     /**
      * Display the registration view.
      */
@@ -28,24 +43,14 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreUserRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
+        $data = $request->validated();
+        $user = $this->_userService->userStore($data);
         event(new Registered($user));
-
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route(\App\Helpers\GeneralHelpers::WHO_AM_I(). '.dashboard', absolute: false));
+
     }
 }

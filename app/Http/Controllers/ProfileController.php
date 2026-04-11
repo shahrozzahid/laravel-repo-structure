@@ -57,4 +57,12 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    /**
+     * Display the dashboard.
+     */
+    public function dashboard()
+    {
+        return view('dashboard');
+    }
 }

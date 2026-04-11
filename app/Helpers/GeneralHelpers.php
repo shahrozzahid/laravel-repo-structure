@@ -19,20 +19,47 @@ abstract class GeneralHelpers
      * @return bool|string
      */
 
-    public static function UPLOAD_FILE(object $file, string $path, bool $unlink = false, string $oldPath = null){
-
-     $name = self::STR_RANDOM(10).'-'.time() . '.' . $file->getClientOriginalExtension();
-        if(self::MAKE_DIR($path))
-        {
-            Storage::disk('public')->putFileAs($path, $file, $name);
-            $full_image_name =  $path . '/' . $name;
-
-            !$unlink ?: self::REMOVE_FILE($oldPath);
+     public static function UPLOAD_FILE(
+        object $file, 
+        string $path, 
+        bool $unlink = false, 
+        string $oldPath = null
+    ) {
+        try {
+            // Step 1: Generate unique file name
+            $name = self::STR_RANDOM(10) . '-' . time() . '.' . $file->getClientOriginalExtension();
+    
+            // Step 2: Clean path — remove leading/trailing slashes
+            $path = trim($path, '/');
+    
+            // Step 3: Ensure directory exists inside storage/app/public/
+            $storagePath = storage_path('app/public/' . $path);
+    
+            if (!file_exists($storagePath)) {
+                mkdir($storagePath, 0755, true); // true = create nested dirs
+            }
+    
+            // Step 4: Store file using Storage facade
+            $stored = Storage::disk('public')->putFileAs($path, $file, $name);
+    
+            if (!$stored) {
+                return false;
+            }
+    
+            // Step 5: Build the relative path to save in DB
+            $full_image_name = $path . '/' . $name;
+    
+            // Step 6: Remove old file if needed
+            if ($unlink && $oldPath) {
+                self::REMOVE_FILE($oldPath);
+            }
+    
             return $full_image_name;
+    
+        } catch (\Exception $e) {
+            \Log::error('UPLOAD_FILE Error: ' . $e->getMessage());
+            return false;
         }
-
-        return false;
-
     }
 
     /**
@@ -50,23 +77,34 @@ abstract class GeneralHelpers
      * @return bool
      */
 
-    public static function MAKE_DIR(string $name): bool
-    {
-        if (!Storage::disk('public')->exists($name)) {
-            Storage::disk('public')->makeDirectory($name);
-        }
-
-        return true;
-    }
+     public static function MAKE_DIR(string $path): bool
+     {
+         // ✅ Must point to storage/app/public/ — same place Storage facade uses
+         $fullPath = storage_path('app/public/' . trim($path, '/'));
+     
+         if (!file_exists($fullPath)) {
+             return mkdir($fullPath, 0755, true); // 0755 = permissions, true = recursive
+         }
+     
+         return true; // already exists
+     }
 
     /**
      * @param string $filepath
      * @return bool
      */
-    public static function REMOVE_FILE(string $filepath): bool
-    {
-        return Storage::disk('public')->delete($filepath);
+    public static function REMOVE_FILE(string $oldPath = null): bool
+{
+    if (!$oldPath) return false;
+
+    // Remove from storage/app/public/
+    if (Storage::disk('public')->exists($oldPath)) {
+        Storage::disk('public')->delete($oldPath);
+        return true;
     }
+
+    return false;
+}
 
     /**
      * Identify Current User

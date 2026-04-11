@@ -28,7 +28,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(route(\App\Helpers\GeneralHelpers::WHO_AM_I(). '.dashboard', absolute: false));
     }
 
     /**
