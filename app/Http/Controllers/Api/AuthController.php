@@ -8,41 +8,50 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-
+use App\Http\Contracts\IUserServiceContract;
+use App\Http\Requests\Admin\StoreUserRequest;
 
 class AuthController extends Controller
 {
+    private $_userService;
+
+
+    /**
+     * RegisteredUserController constructor.
+     * @param IUserServiceContract $userService
+     */
+    public function __construct(IUserServiceContract $userService)
+    {
+        $this->_userService = $userService;
+    }
+
      // Register
-     public function register(Request $request)
+     public function register(StoreUserRequest $request)
      {
-         $request->validate([
-             'name'     => 'required|string|max:255',
-             'email'    => 'required|email|unique:users',
-             'password' => 'required|min:8|confirmed',
-             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-         ]);
+         return $request->all();
  
-         // Handle profile image upload
-        $profilePath = null;
-        if ($request->hasFile('profile_image')) {
-            $profilePath = $request->file('profile_image')->store('profiles', 'public');
-        }
+        try {
+         $data = $request->validated();
+
          $token = Str::random(60); // Generate random token
- 
-         $user = User::create([
-             'name'      => $request->name,
-             'email'     => $request->email,
-             'password'  => Hash::make($request->password),
-             'api_token' => $token,
-             'profile_image' => $profilePath,
-         ]);
+
+         $user = $this->_userService->userStore($data, $token);
+
  
          return response()->json([
+             'status'     => true,
              'message'    => 'Registered successfully',
              'api_token'  => $token,
              'token_type' => 'Bearer',
              'user'       => $user,
          ], 201);
+         } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Registration failed',
+                'errors'  => $e->getMessage(),
+            ], 500);
+         }
      }
  
      // Login

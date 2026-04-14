@@ -36,5 +36,19 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+
+        $exceptions->report(function (\Exception $e) {
+            \Log::error('Exception reported: ' . $e->getMessage());
+        });
+    
+        // RENDER — user response
+        $exceptions->render(function (\Exception $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                'status'  => false,
+                'message' => 'An error occurred',
+                'errors'  => $e->getMessage(),
+                ], 500);
+            }
+        });
     })->create();

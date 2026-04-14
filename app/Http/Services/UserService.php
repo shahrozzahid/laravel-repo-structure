@@ -37,12 +37,12 @@ class UserService implements IUserServiceContract
      * @param array $data
      * @return bool|object
      */
-    public function userStore(array $data)
+    public function userStore(array $data, string $token = null )
     {
         $url = $this->_userRepo->addFiles($data['profile_image'], 'profiles');
 
         DB::beginTransaction();
-        if($user = $this->_userRepo->create($this->_filterRequest($data, $url))){
+        if($user = $this->_userRepo->create($this->_filterRequest($data, $url, $token))){
             $user->assignRole(IUserRole::USER);
 //            $user->givePermissionTo(IUserPermission::PROJECT_CREATE);
             DB::commit();
@@ -59,13 +59,14 @@ class UserService implements IUserServiceContract
      * @return array
      */
 
-    private function _filterRequest($request, string $url){
+    private function _filterRequest($request, string $url, string $token = null){
 
         return [
             'name'           => $request['name'],
             'email'          => $request['email'],
             'profile_image'  => $url,
             'password'       => Hash::make($request['password']),
+            'api_token'      => $token,
         ];
     }
 
