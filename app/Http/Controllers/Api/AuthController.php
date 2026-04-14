@@ -10,8 +10,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Http\Contracts\IUserServiceContract;
 use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Requests\Auth\LoginRequest;
 
-class AuthController extends Controller
+
+
+class AuthController extends BaseApiController
 {
     private $_userService;
 
@@ -22,64 +25,55 @@ class AuthController extends Controller
      */
     public function __construct(IUserServiceContract $userService)
     {
-        $this->_userService = $userService;
+        $this->service = $userService;
     }
 
      // Register
+     
      public function register(StoreUserRequest $request)
      {
-         return $request->all();
  
         try {
          $data = $request->validated();
-
          $token = Str::random(60); // Generate random token
-
-         $user = $this->_userService->userStore($data, $token);
-
- 
-         return response()->json([
-             'status'     => true,
-             'message'    => 'Registered successfully',
-             'api_token'  => $token,
-             'token_type' => 'Bearer',
-             'user'       => $user,
-         ], 201);
+         $user = $this->service->userStore($data, $token);
+         return $this->createdResponse(
+            $user,
+            $this->getMessage('adminMessages.store_success'),
+            $token,
+            'Bearer'
+        );
          } catch (\Exception $e) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Registration failed',
-                'errors'  => $e->getMessage(),
-            ], 500);
+         return $this->errorResponse($e->getMessage(), 500);
          }
      }
- 
+
      // Login
-     public function login(Request $request)
+     public function login(LoginRequest $request)
      {
-         $request->validate([
-             'email'    => 'required|email',
-             'password' => 'required',
-         ]);
- 
-         if (!Auth::attempt($request->only('email', 'password'))) {
-             return response()->json([
-                 'message' => 'Invalid credentials',
-             ], 401);
-         }
- 
-         // Generate new token on every login
-         $token = Str::random(60);
- 
-         $user = Auth::user();
-         $user->forceFill(['api_token' => $token])->save();
- 
-         return response()->json([
-             'message'    => 'Login successful',
-             'api_token'  => $token,
-             'token_type' => 'Bearer',
-             'user'       => $user,
-         ]);
+        try {
+            $data = $request->validated();
+            // Step 1 — Attempt authentication FIRST
+            if (!Auth::attempt([
+                'email'    => $data['email'],
+                'password' => $data['password'],
+            ])) {
+                return $this->notFoundResponse( $this->getMessage('adminMessages.invalid_credentials'), 401);
+            }
+            $token = Str::random(60); // Generate random token
+            $user = Auth::user();
+            
+            $user->forceFill(['api_token' => $token])->save();
+            return $this->successResponse(
+                $user,
+                $this->getMessage('authMessages.login_success'),
+                $token,
+                'Bearer'
+            );
+        }catch (\Exception $e) {
+            return $this->notFoundResponse($e->getMessage(), 404);
+        }
+
      }
  
      // Logout
