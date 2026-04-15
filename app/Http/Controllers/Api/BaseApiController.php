@@ -39,6 +39,19 @@ class BaseApiController extends Controller
         }
         return response()->json($response, $code);
     }
+    // ==========================================
+    // Server Error Response
+    // ==========================================
+    public function serverErrorResponse(
+        string $message = 'Server Error',
+        int $code       = 500
+    ) {
+        return response()->json([
+            'status'     => false,
+            'message'    => $message,
+            'alert_type' => 'error',
+        ], $code);
+    }
 
     // ==========================================
     // Error Response

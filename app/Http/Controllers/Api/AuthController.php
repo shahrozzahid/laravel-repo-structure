@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use App\Http\Contracts\IUserServiceContract;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Admin\UpdateUserRequest;
 
 
 
@@ -48,6 +49,33 @@ class AuthController extends BaseApiController
          }
      }
 
+
+     // -----------------------------------------------
+    //  user/update/API
+    //  -----------------------------------------------
+
+    public function update(UpdateUserRequest $request)
+    {
+        try {
+            $data = $request->validated();
+            $user = Auth::user();
+            // Pass file object separately if exists
+            if ($request->hasFile('profile_image')) {
+                $data['profile_image'] = $request->file('profile_image');
+            }
+            // return response()->json(['profile' => $data['profile_image']]);
+            $updatedUser = $this->service->userUpdate($user->id, $data);
+            return $this->successResponse(
+                $updatedUser,
+                $this->getMessage('adminMessages.update_success'),
+            );
+
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse($e->getMessage(), 500);
+        }
+    }
+
+
      // Login
      public function login(LoginRequest $request)
      {
@@ -80,16 +108,30 @@ class AuthController extends BaseApiController
      public function logout(Request $request)
      {
          // Invalidate token by setting it to null
-         $request->user()->forceFill(['api_token' => null])->save();
- 
-         return response()->json([
-             'message' => 'Logged out successfully',
-         ]);
+         try {
+            //code...
+            $request->user()->forceFill(['api_token' => null])->save();
+            return $this->successResponse(
+            null,
+            $this->getMessage('authMessages.logout_success'),
+        );
+         } catch (\Exception $e) {
+            return $this->unauthorizedResponse($e->getMessage());
+
+         }
      }
  
      // Get authenticated user
      public function me(Request $request)
      {
-         return response()->json($request->user());
+        try {
+            //code...
+         return $this->successResponse(
+            $request->user(),
+            $this->getMessage('userMessages.fetch_success'),
+        );
+        } catch (\Exception $e) {
+            return $this->unauthorizedResponse($e->getMessage());
+        }
      }
 }
