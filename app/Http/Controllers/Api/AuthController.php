@@ -30,18 +30,21 @@ class AuthController extends BaseApiController
     }
 
      // Register
+     // -----------------------------------------------
+    //  user/Register/API
+    //  -----------------------------------------------
      
      public function register(StoreUserRequest $request)
      {
  
         try {
          $data = $request->validated();
-         $token = Str::random(60); // Generate random token
-         $user = $this->service->userStore($data, $token);
+        //  $token = Str::random(60); // Generate random token
+         $user = $this->service->userStore($data);
          return $this->createdResponse(
             $user,
             $this->getMessage('adminMessages.store_success'),
-            $token,
+            $user['api_token'],
             'Bearer'
         );
          } catch (\Exception $e) {
@@ -75,8 +78,9 @@ class AuthController extends BaseApiController
         }
     }
 
-
-     // Login
+     // -----------------------------------------------
+    //  user/Login/API
+    //  -----------------------------------------------
      public function login(LoginRequest $request)
      {
         try {
@@ -88,10 +92,10 @@ class AuthController extends BaseApiController
             ])) {
                 return $this->notFoundResponse( $this->getMessage('adminMessages.invalid_credentials'), 401);
             }
-            $token = Str::random(60); // Generate random token
+            // $token = Str::random(60); // Generate random token
             $user = Auth::user();
-            
-            $user->forceFill(['api_token' => $token])->save();
+            $token = $user->createToken('auth_token')->plainTextToken;
+            // $user->forceFill(['api_token' => $token])->save();
             return $this->successResponse(
                 $user,
                 $this->getMessage('authMessages.login_success'),
@@ -104,13 +108,17 @@ class AuthController extends BaseApiController
 
      }
  
-     // Logout
+     // -----------------------------------------------
+    //  user/Logout/API
+    //  -----------------------------------------------
      public function logout(Request $request)
      {
          // Invalidate token by setting it to null
          try {
             //code...
-            $request->user()->forceFill(['api_token' => null])->save();
+            // $request->user()->forceFill(['api_token' => null])->save();
+            $request->user()->currentAccessToken()->delete();
+
             return $this->successResponse(
             null,
             $this->getMessage('authMessages.logout_success'),
@@ -121,7 +129,9 @@ class AuthController extends BaseApiController
          }
      }
  
-     // Get authenticated user
+     // -----------------------------------------------
+    //  Get authenticated/API
+    //  -----------------------------------------------
      public function me(Request $request)
      {
         try {

@@ -45,6 +45,7 @@ class UserService implements IUserServiceContract
         DB::beginTransaction();
         if($user = $this->_userRepo->create($this->_filterRequest($data, $url, $token))){
             $user->assignRole(IUserRole::USER);
+            $user->createToken('auth_token')->plainTextToken;
 //            $user->givePermissionTo(IUserPermission::PROJECT_CREATE);
             DB::commit();
             return  $user;
@@ -57,6 +58,9 @@ class UserService implements IUserServiceContract
     /**
      * @param array $data
      * @return bool|object
+     * Two different ways through update user data. Same working but in a different apply logic.
+     * 1) userUpdate($id, array $data, string $token = null)
+     * 2) updateUser(Model $user, array $data)
      */
     public function userUpdate($id, array $data, string $token = null )    
     {
