@@ -46,6 +46,7 @@ class UserService implements IUserServiceContract
         if($user = $this->_userRepo->create($this->_filterRequest($data, $url, $token))){
             $user->assignRole(IUserRole::USER);
             $user->createToken('auth_token')->plainTextToken;
+            $user->sendRegisterEmail();
 //            $user->givePermissionTo(IUserPermission::PROJECT_CREATE);
             DB::commit();
             return  $user;

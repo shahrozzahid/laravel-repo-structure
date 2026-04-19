@@ -6,10 +6,53 @@ namespace App\Helpers;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\RegisterMail;
+use App\Mail\LoginMail;
+use App\Mail\ForgotPasswordMail;
 
 
 abstract class GeneralHelpers
 {
+
+
+/**
+     * Dispatch Mail based on view type
+     */
+    public static function DISPATCH_MAIL($data)
+    {
+
+        try {
+            // Select Mail class based on view
+            $mailClass = match($data['view']) {
+                'register'         => new RegisterMail($data['params']),
+                'login'            => new LoginMail($data['params']),
+                'forgot_password'  => new ForgotPasswordMail($data['params']),
+                default            => null,
+            };
+
+            // ✅ Check mail class resolved
+        if (!$mailClass) {
+            \Log::error('DISPATCH_MAIL: No mail class found for view: ' . $data['view']);
+            return false;
+        }
+        // ✅ Send mail
+        Mail::to($data['to'])->send($mailClass);
+
+        \Log::info('DISPATCH_MAIL: Mail sent successfully to ' . $data['to']);
+
+        return true;
+
+        } catch (\Exception $e) {
+            \Log::error('Mail Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+
+
+
+
 
     /**
      * @param object $file

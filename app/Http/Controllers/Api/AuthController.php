@@ -94,6 +94,7 @@ class AuthController extends BaseApiController
             }
             // $token = Str::random(60); // Generate random token
             $user = Auth::user();
+            $user->sendLoginEmail();
             $token = $user->createToken('auth_token')->plainTextToken;
             // $user->forceFill(['api_token' => $token])->save();
             return $this->successResponse(
